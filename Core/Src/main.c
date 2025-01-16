@@ -108,7 +108,13 @@ int main(void)
     Error_Handler();
   }
   
-  HAL_ADC_Start(&hadc1);  // 启动ADC
+  HAL_Delay(10);  // 等待校准完成
+  
+  // 启动ADC转换
+  if(HAL_ADC_Start(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -119,7 +125,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     // 等待转换完成
-    if(HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK)
+    if(HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK)
     {
       adc_value = HAL_ADC_GetValue(&hadc1);    // 获取ADC值
       voltage_mv = (adc_value * 3300) / 65535;  // 转换为毫伏值
@@ -129,7 +135,9 @@ int main(void)
       HAL_UART_Transmit(&huart4, uart_buffer, strlen((char*)uart_buffer), 100);
     }
     
-    HAL_Delay(1000);  // 延时1000ms
+    // 启动下一次转换
+    HAL_ADC_Start(&hadc1);
+    HAL_Delay(100);  // 延时100ms
   }
   /* USER CODE END 3 */
 }
@@ -210,12 +218,12 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV2;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;  // 降低ADC时钟频率
   hadc1.Init.Resolution = ADC_RESOLUTION_16B;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;    // 启用连续转换模式
+  hadc1.Init.ContinuousConvMode = DISABLE;    // 禁用连续转换
   hadc1.Init.NbrOfConversion = 1;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -225,6 +233,8 @@ static void MX_ADC1_Init(void)
   hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
   hadc1.Init.OversamplingMode = DISABLE;
   hadc1.Init.Oversampling.Ratio = 1;
+
+  
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
